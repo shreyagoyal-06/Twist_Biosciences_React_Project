@@ -1,0 +1,47 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - npm install -g npm@latest
+      - npm install
+
+  pre_build:
+    commands:
+      - echo "Starting pre-build phase"
+      - npm run lint || true  # Run linting if configured, don't fail if not present
+
+  build:
+    commands:
+      - echo "Running tests"
+      - npm test -- --coverage --watchAll=false
+      - npm run build
+
+  post_build:
+    commands:
+      - echo "Build completed"
+      - |
+        if [ -d "coverage" ]; then
+          echo "Processing coverage reports"
+          cp -r coverage/ ${CODEBUILD_SRC_DIR}/coverage/
+        fi
+
+reports:
+  coverage-report:
+    files:
+      - 'coverage/clover.xml'
+      - 'coverage/coverage-final.json'
+    file-format: CLOVERXML
+    base-directory: '${CODEBUILD_SRC_DIR}'
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: 'build'
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+    - '.npm/**/*'
