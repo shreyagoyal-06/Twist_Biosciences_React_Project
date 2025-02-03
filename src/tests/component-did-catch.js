@@ -84,5 +84,3 @@ describe('ErrorBoundary and BombButton', () => {
   });
 });
 
-
-This test file covers the main functionality of the ErrorBoundary and BombButton components, including error catching, rendering, and error reporting. The tests follow the specified guidelines and best practices.
