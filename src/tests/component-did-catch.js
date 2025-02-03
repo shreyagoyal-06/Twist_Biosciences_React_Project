@@ -1,6 +1,4 @@
-I understand your requirements for creating Jest/React Testing Library test files based on the provided natural language test cases. I'll create the test file following the guidelines, best practices, and prohibitions you've outlined. Here's the implementation:
 
-```javascript
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -101,6 +99,6 @@ describe('ErrorBoundary and BombButton', () => {
     expect(reportedError.message).toBe('💥');
   });
 });
-```
+
 
 I've created this test file based on your requirements and the provided guidelines. The tests cover the main functionality of the ErrorBoundary and BombButton components, including error catching, fallback UI display, error reporting, and component resetting. The file uses the correct imports, follows the specified testing patterns, and adheres to the best practices you outlined.
