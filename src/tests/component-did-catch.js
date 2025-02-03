@@ -1,4 +1,4 @@
-```javascript
+
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary } from '../component-did-catch';
@@ -355,4 +355,3 @@ describe('Versioning and Layout Tests', () => {
     expect(window.getComputedStyle(errorMessage).display).toBe('block');
   });
 });
-```
