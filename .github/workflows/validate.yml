@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         
     - name: Install Dependencies
       run: |
@@ -26,7 +26,7 @@ jobs:
         
     - name: Run Tests
       run: |
-        NODE_ENV=test npx react-scripts test src/tests/component-did-catch.js --watchAll=false
+        NODE_ENV=test npx react-scripts test "src/tests/component-did-catch.js" --testMatch "**/src/tests/**/*.(spec|test).[jt]s?(x)" --watchAll=false
       env:
         CI: true
         SKIP_PREFLIGHT_CHECK: true
