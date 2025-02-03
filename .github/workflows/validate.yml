@@ -21,7 +21,7 @@ jobs:
         
     - name: Install Dependencies
       run: |
-        npm ci
+        npm install
         npm install @testing-library/react @testing-library/jest-dom --save-dev
         
     - name: Run Tests
