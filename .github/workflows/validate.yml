@@ -16,20 +16,17 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '18'
         
     - name: Install Dependencies
       run: |
+        rm -rf node_modules
         npm install --legacy-peer-deps
-        
-    - name: Fix Permissions
-      run: |
-        sudo chmod -R 777 node_modules/.bin
-        sudo chown -R $USER:$(id -gn $USER) node_modules/.bin
+        npm install react-scripts@4.0.3 --save-exact
         
     - name: Run Tests
       run: |
-        CI=true npm test src/tests/component-did-catch.js -- --watchAll=false
+        NODE_ENV=test npx react-scripts test src/tests/component-did-catch.js --watchAll=false
       env:
         CI: true
         SKIP_PREFLIGHT_CHECK: true
