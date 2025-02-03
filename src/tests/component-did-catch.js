@@ -1,3 +1,4 @@
+
 // src/__tests__/component-did-catch.test.js
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
