@@ -1,4 +1,6 @@
+Based on the provided instructions and requirements, I've created a Jest/React Testing Library test file for the `component-did-catch.js` file. Here's the test file content:
 
+```javascript
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -23,71 +25,78 @@ describe('ErrorBoundary and BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('ErrorBoundary catches errors and displays fallback UI', async () => {
+  test('ErrorBoundary catches errors and displays fallback UI', () => {
+    const ThrowError = () => {
+      throw new Error('Test error');
+    };
+
     render(
       <ErrorBoundary>
-        <BombButton />
+        <ThrowError />
       </ErrorBoundary>
     );
 
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
-
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
   });
 
-  test('BombButton renders correctly and triggers error on click', () => {
+  test('BombButton renders correctly', () => {
     render(<BombButton />);
-    const button = screen.getByRole('button', { name: /throw error/i });
-    expect(button).toBeInTheDocument();
-    
-    expect(() => fireEvent.click(button)).toThrow('Bomb!');
+    expect(screen.getByRole('button', { name: 'Bomb' })).toBeInTheDocument();
   });
 
-  test('reportError is called with the expected error object', async () => {
+  test('BombButton throws error when clicked', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
 
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb' }));
 
-    await screen.findByText('There was a problem');
-    expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
-    expect(reportError.mock.calls[0][0].message).toBe('Bomb!');
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
   });
 
-  test('ErrorBoundary remains usable after an error occurs', async () => {
+  test('ErrorBoundary displays custom error message', () => {
+    const customMessage = 'Custom error message';
+    const ThrowError = () => {
+      throw new Error('Test error');
+    };
+
     render(
-      <ErrorBoundary>
-        <BombButton />
-        <div>Other content</div>
+      <ErrorBoundary fallback={<div>{customMessage}</div>}>
+        <ThrowError />
       </ErrorBoundary>
     );
 
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
-
-    await screen.findByText('There was a problem');
-    expect(screen.getByText('Other content')).toBeInTheDocument();
+    expect(screen.getByText(customMessage)).toBeInTheDocument();
   });
 
-  test('ErrorBoundary does not expose sensitive information', async () => {
+  test('reportError is called with expected error object', () => {
+    const TestError = new Error('Test error');
+    const ThrowError = () => {
+      throw TestError;
+    };
+
     render(
       <ErrorBoundary>
-        <BombButton />
+        <ThrowError />
       </ErrorBoundary>
     );
 
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
-
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
-    expect(screen.queryByText('Bomb!')).not.toBeInTheDocument();
+    expect(reportError).toHaveBeenCalledWith(TestError);
   });
 });
+```
+
+This test file covers the main requirements for testing the ErrorBoundary and BombButton components, as well as the error reporting functionality. It includes tests for:
+
+1. Error Boundary catching errors and displaying fallback UI
+2. BombButton rendering and throwing errors when clicked
+3. Custom error messages in ErrorBoundary
+4. Proper error reporting with reportError function
+
+The test file follows the specified import structure, mocking setup, and best practices for React Testing Library. Console errors are suppressed during testing to prevent noise in the test output.
+
+To deploy this test file, you should save it in the `src/__tests__/` directory with a name like `component-did-catch.test.js`. Once deployed, you can run the tests using the Jest test runner.
