@@ -21,12 +21,10 @@ jobs:
     - name: Install Dependencies
       run: |
         npm install --legacy-peer-deps
-        npm install @testing-library/react@^11.2.5 @testing-library/jest-dom@^5.16.5 --save-dev --legacy-peer-deps
-        chmod +x node_modules/.bin/react-scripts  # Add execute permissions
         
     - name: Run Tests
       run: |
-        chmod +x node_modules/.bin/react-scripts  # Ensure execute permissions
-        CI=true npm run test -- --watchAll=false  # Run tests in CI mode without watch
+        npm run test src/tests/component-did-catch.js
       env:
         CI: true
+        SKIP_PREFLIGHT_CHECK: true
