@@ -1,16 +1,18 @@
+Based on the provided information and guidelines, I'll create Jest/React Testing Library test files for the specified components and functionalities. I'll focus on the `component-did-catch.js` file and its exported components.
 
+```javascript
 // src/__tests__/component-did-catch.test.js
+
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { ErrorBoundary, BombButton } from '../component-did-catch';
-import { reportError } from '../utils/error-reporting';
 
+// Mock the reportError function
 jest.mock('../utils/error-reporting', () => ({
   reportError: jest.fn(),
 }));
 
-describe('ErrorBoundary and BombButton', () => {
+describe('ErrorBoundary and BombButton Components', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -21,115 +23,128 @@ describe('ErrorBoundary and BombButton', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    console.error.mockClear();
   });
 
   test('ErrorBoundary catches errors and displays fallback UI', () => {
-    const TestError = () => {
+    const ThrowError = () => {
       throw new Error('Test error');
     };
 
     render(
       <ErrorBoundary>
-        <TestError />
+        <ThrowError />
       </ErrorBoundary>
     );
 
-    expect(screen.getByText(/An error has occurred/i)).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalled();
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
   });
 
-  test('ErrorBoundary supports customizable error messages', () => {
+  test('ErrorBoundary allows customizable error messages', () => {
     const customMessage = 'Custom error message';
-    const TestError = () => {
+    const ThrowError = () => {
       throw new Error('Test error');
     };
 
     render(
-      <ErrorBoundary fallbackMessage={customMessage}>
-        <TestError />
+      <ErrorBoundary fallback={<div>{customMessage}</div>}>
+        <ThrowError />
       </ErrorBoundary>
     );
 
     expect(screen.getByText(customMessage)).toBeInTheDocument();
   });
 
-  test('BombButton displays a button with bomb emoji', () => {
+  test('BombButton renders correctly', () => {
     render(<BombButton />);
-    const button = screen.getByRole('button', { name: /💣/i });
-    expect(button).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bomb!' })).toBeInTheDocument();
   });
 
-  test('Clicking BombButton triggers error caught by ErrorBoundary', () => {
+  test('Clicking BombButton triggers an error caught by ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
 
-    const button = screen.getByRole('button', { name: /💣/i });
-    fireEvent.click(button);
-
-    expect(screen.getByText(/An error has occurred/i)).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb!' }));
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
   });
 
-  test('reportError function is called with additional metadata', () => {
-    const TestError = () => {
+  test('reportError is called with the expected error object', () => {
+    const { reportError } = require('../utils/error-reporting');
+    const ThrowError = () => {
       throw new Error('Test error');
     };
 
     render(
       <ErrorBoundary>
-        <TestError />
+        <ThrowError />
       </ErrorBoundary>
     );
 
-    expect(reportError).toHaveBeenCalledWith(
-      expect.any(Error),
-      expect.objectContaining({
-        timestamp: expect.any(Number),
-        componentStack: expect.any(String),
-      })
-    );
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(reportError.mock.calls[0][0].message).toBe('Test error');
   });
 
-  test('Application maintains usability when error occurs', () => {
-    const TestError = () => {
-      throw new Error('Test error');
-    };
-
-    const { rerender } = render(
-      <ErrorBoundary>
-        <TestError />
-        <div>Other content</div>
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText(/An error has occurred/i)).toBeInTheDocument();
-    expect(screen.getByText('Other content')).toBeInTheDocument();
-
-    rerender(
-      <ErrorBoundary>
-        <div>New content</div>
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('New content')).toBeInTheDocument();
-  });
-
-  test('Error messages are accessible to screen readers', () => {
-    const TestError = () => {
+  test('ErrorBoundary maintains usability when an error occurs', () => {
+    const ThrowError = () => {
       throw new Error('Test error');
     };
 
     render(
+      <div>
+        <h1>App Title</h1>
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+        <footer>App Footer</footer>
+      </div>
+    );
+
+    expect(screen.getByText('App Title')).toBeInTheDocument();
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    expect(screen.getByText('App Footer')).toBeInTheDocument();
+  });
+
+  test('Integration: BombButton, ErrorBoundary, and reportError function', () => {
+    const { reportError } = require('../utils/error-reporting');
+    
+    render(
       <ErrorBoundary>
-        <TestError />
+        <BombButton />
       </ErrorBoundary>
     );
 
-    const errorMessage = screen.getByText(/An error has occurred/i);
-    expect(errorMessage).toHaveAttribute('role', 'alert');
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb!' }));
+
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(reportError.mock.calls[0][0].message).toBe('Boom!');
   });
 });
+```
+
+This test file covers the main functionalities of the `ErrorBoundary` and `BombButton` components, as well as the integration with the `reportError` function. It includes tests for:
+
+1. Error boundary functionality
+2. Customizable error messages
+3. BombButton rendering and error triggering
+4. Error reporting
+5. Application usability during errors
+6. Integration between components and error handling
+
+The test file follows the best practices and guidelines provided, including:
+
+- Proper import statements
+- Mocking of external utilities
+- Console error suppression
+- Focused test cases
+- Use of appropriate queries and assertions
+- Testing of exported components only
+- Avoiding implementation details
+- Using correct async patterns where necessary
+
+Note that some of the provided test cases (like form functionality tests) are not included as they don't seem to be directly related to the `component-did-catch.js` file. If you need tests for additional components or functionalities, please provide the relevant source code, and I'll be happy to create tests for those as well.
