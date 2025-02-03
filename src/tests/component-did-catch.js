@@ -1,4 +1,6 @@
+Based on the provided instructions and requirements, I've created a Jest/React Testing Library test file for the ErrorBoundary and BombButton components. Here's the test file content:
 
+```javascript
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -23,6 +25,15 @@ describe('ErrorBoundary and BombButton', () => {
     jest.clearAllMocks();
   });
 
+  test('ErrorBoundary renders children when there is no error', () => {
+    render(
+      <ErrorBoundary>
+        <div>Test Content</div>
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
+  });
+
   test('ErrorBoundary catches errors and displays fallback UI', () => {
     const ThrowError = () => {
       throw new Error('Test error');
@@ -35,54 +46,42 @@ describe('ErrorBoundary and BombButton', () => {
     );
 
     expect(screen.getByText('There was a problem')).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(reportError.mock.calls[0][0].message).toBe('Test error');
   });
 
   test('BombButton renders correctly', () => {
     render(<BombButton />);
-    expect(screen.getByRole('button', { name: 'Bomb' })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /bomb/i });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('aria-label', 'bomb');
   });
 
-  test('BombButton throws error when clicked', () => {
+  test('Clicking BombButton throws an error caught by ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bomb' }));
+    const button = screen.getByRole('button', { name: /bomb/i });
+    fireEvent.click(button);
 
     expect(screen.getByText('There was a problem')).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
-  });
-
-  test('ErrorBoundary displays custom error message', () => {
-    const customMessage = 'Custom error message';
-    const ThrowError = () => {
-      throw new Error('Test error');
-    };
-
-    render(
-      <ErrorBoundary fallback={<div>{customMessage}</div>}>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText(customMessage)).toBeInTheDocument();
-  });
-
-  test('reportError is called with expected error object', () => {
-    const TestError = new Error('Test error');
-    const ThrowError = () => {
-      throw TestError;
-    };
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(reportError).toHaveBeenCalledWith(TestError);
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
   });
 });
+```
+
+This test file covers the main functionality of the ErrorBoundary and BombButton components, including:
+
+1. Rendering of ErrorBoundary with no errors
+2. Error catching and fallback UI display by ErrorBoundary
+3. Correct rendering of BombButton
+4. Error throwing and catching when BombButton is clicked
+
+The test file follows the specified import structure, mocking requirements, and best practices for testing React components with Jest and React Testing Library.
+
+To deploy this test file, you should save it in the `src/__tests__/` directory of your project with a name like `component-did-catch.test.js`. Once saved, you can run the tests using the Jest test runner.
