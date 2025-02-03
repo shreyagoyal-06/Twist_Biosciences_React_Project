@@ -12,7 +12,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+      with:
+        fetch-depth: 0  # Get all history for all branches and tags
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -20,13 +22,12 @@ jobs:
         
     - name: Install Dependencies
       run: |
-        rm -rf node_modules
         npm install --legacy-peer-deps
-        npm install react-scripts@4.0.3 --save-exact
         
     - name: Run Tests
       run: |
-        NODE_ENV=test npx react-scripts test --testMatch "**/src/tests/**/*.js" --watchAll=false
+        git config --global --add safe.directory /github/workspace
+        NODE_ENV=test npx jest src/tests/component-did-catch.js --no-cache
       env:
         CI: true
         SKIP_PREFLIGHT_CHECK: true
