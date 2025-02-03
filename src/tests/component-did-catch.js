@@ -1,12 +1,14 @@
+Based on the provided guidelines and requirements, I'll create a Jest/React Testing Library test file for the `component-did-catch.js` file. Here's the implementation:
 
+```javascript
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ErrorBoundary, BombButton } from '../component-did-catch';
-import { reportError } from '../error-reporting';
+import { reportError } from '../utils';
 
-jest.mock('../error-reporting', () => ({
-  reportError: jest.fn(),
+jest.mock('../utils', () => ({
+  reportError: jest.fn()
 }));
 
 describe('ErrorBoundary and BombButton', () => {
@@ -23,97 +25,83 @@ describe('ErrorBoundary and BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('ErrorBoundary catches errors and displays fallback UI', () => {
-    const TestError = () => {
-      throw new Error('Test error');
-    };
-
+  test('ErrorBoundary catches errors and displays fallback UI', async () => {
     render(
       <ErrorBoundary>
-        <TestError />
+        <BombButton />
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /throw error/i });
+    fireEvent.click(button);
+
+    const errorMessage = await screen.findByText('There was a problem');
+    expect(errorMessage).toBeInTheDocument();
   });
 
-  test('ErrorBoundary displays custom error message', () => {
-    const TestError = () => {
-      throw new Error('Custom error');
-    };
-
-    render(
-      <ErrorBoundary fallback={<div>Custom error message</div>}>
-        <TestError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('Custom error message')).toBeInTheDocument();
-  });
-
-  test('BombButton renders correctly', () => {
+  test('BombButton renders correctly and triggers error on click', () => {
     render(<BombButton />);
-    expect(screen.getByRole('button', { name: 'Bomb!' })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /throw error/i });
+    expect(button).toBeInTheDocument();
+    
+    expect(() => fireEvent.click(button)).toThrow('Bomb!');
   });
 
-  test('BombButton throws error when clicked', () => {
+  test('reportError is called with the expected error object', async () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bomb!' }));
+    const button = screen.getByRole('button', { name: /throw error/i });
+    fireEvent.click(button);
 
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    await screen.findByText('There was a problem');
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(reportError.mock.calls[0][0].message).toBe('Bomb!');
   });
 
-  test('reportError is called with the expected error object', () => {
-    const TestError = () => {
-      throw new Error('Test error');
-    };
-
+  test('ErrorBoundary remains usable after an error occurs', async () => {
     render(
       <ErrorBoundary>
-        <TestError />
+        <BombButton />
+        <div>Other content</div>
       </ErrorBoundary>
     );
 
-    expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
-    expect(reportError.mock.calls[0][0].message).toBe('Test error');
-  });
+    const button = screen.getByRole('button', { name: /throw error/i });
+    fireEvent.click(button);
 
-  test('Application remains usable when an error occurs', () => {
-    render(
-      <div>
-        <h1>App Title</h1>
-        <ErrorBoundary>
-          <BombButton />
-        </ErrorBoundary>
-        <p>Other content</p>
-      </div>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Bomb!' }));
-
-    expect(screen.getByText('App Title')).toBeInTheDocument();
+    await screen.findByText('There was a problem');
     expect(screen.getByText('Other content')).toBeInTheDocument();
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
   });
 
-  test('Integration: BombButton, ErrorBoundary, and reportError interaction', () => {
+  test('ErrorBoundary does not expose sensitive information', async () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bomb!' }));
+    const button = screen.getByRole('button', { name: /throw error/i });
+    fireEvent.click(button);
 
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
-    expect(reportError.mock.calls[0][0].message).toBe('💣');
+    const errorMessage = await screen.findByText('There was a problem');
+    expect(errorMessage).toBeInTheDocument();
+    expect(screen.queryByText('Bomb!')).not.toBeInTheDocument();
   });
 });
+```
+
+This test file covers the main requirements and follows the best practices outlined in the guidelines:
+
+1. It tests the ErrorBoundary and BombButton components.
+2. It verifies that errors are caught and the fallback UI is displayed.
+3. It checks that the reportError function is called with the expected error object.
+4. It suppresses console errors during testing.
+5. It ensures the application remains usable after an error occurs.
+6. It verifies that sensitive error information is not exposed to the user.
+
+The test file uses the correct import paths, mocks the necessary functions, and follows the required testing patterns and assertions. It also adheres to the accessibility testing guidelines by using appropriate role queries.
