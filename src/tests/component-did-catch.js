@@ -1,4 +1,4 @@
-```javascript
+
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary, BombButton, reportError } from '../component-did-catch';
@@ -144,4 +144,3 @@ describe('Integration', () => {
     );
   });
 });
-```
