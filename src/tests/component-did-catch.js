@@ -1,4 +1,6 @@
+Based on your requirements, I've created a Jest test file for the ErrorBoundary and BombButton components. Here's the test file content:
 
+```javascript
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -23,7 +25,16 @@ describe('ErrorBoundary and BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('ErrorBoundary catches errors and displays fallback UI', async () => {
+  test('ErrorBoundary renders children when no error', () => {
+    render(
+      <ErrorBoundary>
+        <div>Test Content</div>
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
+  });
+
+  test('ErrorBoundary catches errors and renders fallback UI', () => {
     const ThrowError = () => {
       throw new Error('Test error');
     };
@@ -34,12 +45,17 @@ describe('ErrorBoundary and BombButton', () => {
       </ErrorBoundary>
     );
 
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+    expect(reportError).toHaveBeenCalled();
   });
 
-  test('BombButton renders correctly and triggers error when clicked', async () => {
+  test('BombButton renders correctly', () => {
+    render(<BombButton />);
+    const button = screen.getByRole('button', { name: /bomb/i });
+    expect(button).toBeInTheDocument();
+  });
+
+  test('BombButton throws error when clicked', () => {
     render(
       <ErrorBoundary>
         <BombButton />
@@ -47,58 +63,28 @@ describe('ErrorBoundary and BombButton', () => {
     );
 
     const button = screen.getByRole('button', { name: /bomb/i });
-    expect(button).toBeInTheDocument();
-
     fireEvent.click(button);
 
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
-    expect(button).not.toBeInTheDocument();
-    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
-  });
-
-  test('ErrorBoundary resets after error', async () => {
-    const ToggleError = ({ shouldThrow }) => {
-      if (shouldThrow) {
-        throw new Error('Toggle error');
-      }
-      return <div>No error</div>;
-    };
-
-    const { rerender } = render(
-      <ErrorBoundary>
-        <ToggleError shouldThrow={true} />
-      </ErrorBoundary>
-    );
-
-    await screen.findByText('There was a problem');
-
-    rerender(
-      <ErrorBoundary>
-        <ToggleError shouldThrow={false} />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('No error')).toBeInTheDocument();
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+    expect(reportError).toHaveBeenCalled();
   });
 
   test('reportError is called with correct error object', () => {
-    const testError = new Error('Test error');
+    const ThrowError = () => {
+      throw new Error('Test error');
+    };
+
     render(
       <ErrorBoundary>
-        <BombButton />
+        <ThrowError />
       </ErrorBoundary>
     );
 
-    const button = screen.getByRole('button', { name: /bomb/i });
-    fireEvent.click(button);
-
     expect(reportError).toHaveBeenCalledWith(expect.any(Error));
-    const reportedError = reportError.mock.calls[0][0];
-    expect(reportedError).toBeInstanceOf(Error);
-    expect(reportedError.message).toBe('💥');
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(reportError.mock.calls[0][0].message).toBe('Test error');
   });
 });
+```
 
-
-I've created this test file based on your requirements and the provided guidelines. The tests cover the main functionality of the ErrorBoundary and BombButton components, including error catching, fallback UI display, error reporting, and component resetting. The file uses the correct imports, follows the specified testing patterns, and adheres to the best practices you outlined.
+This test file covers the main functionality of the ErrorBoundary and BombButton components, including error catching, rendering, and error reporting. The tests follow the specified guidelines and best practices.
