@@ -26,7 +26,7 @@ jobs:
         
     - name: Run Tests
       run: |
-        NODE_ENV=test npx react-scripts test "src/tests/component-did-catch.js" --testMatch "**/src/tests/**/*.(spec|test).[jt]s?(x)" --watchAll=false
+        NODE_ENV=test npx react-scripts test --testMatch "**/src/tests/**/*.js" --watchAll=false
       env:
         CI: true
         SKIP_PREFLIGHT_CHECK: true
