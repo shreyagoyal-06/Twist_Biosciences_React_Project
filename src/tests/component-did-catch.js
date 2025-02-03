@@ -1,6 +1,4 @@
-Based on your requirements, I've created a Jest test file for the ErrorBoundary and BombButton components. Here's the test file content:
 
-```javascript
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -85,6 +83,6 @@ describe('ErrorBoundary and BombButton', () => {
     expect(reportError.mock.calls[0][0].message).toBe('Test error');
   });
 });
-```
+
 
 This test file covers the main functionality of the ErrorBoundary and BombButton components, including error catching, rendering, and error reporting. The tests follow the specified guidelines and best practices.
