@@ -22,9 +22,14 @@ jobs:
       run: |
         npm install --legacy-peer-deps
         
+    - name: Fix Permissions
+      run: |
+        sudo chmod -R 777 node_modules/.bin
+        sudo chown -R $USER:$(id -gn $USER) node_modules/.bin
+        
     - name: Run Tests
       run: |
-        npm run test src/tests/component-did-catch.js
+        CI=true npm test src/tests/component-did-catch.js -- --watchAll=false
       env:
         CI: true
         SKIP_PREFLIGHT_CHECK: true
