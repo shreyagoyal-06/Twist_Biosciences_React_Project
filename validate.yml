@@ -1,47 +1,31 @@
-version: 0.2
+name: Component Tests
 
-phases:
-  install:
-    runtime-versions:
-      nodejs: 18
-    commands:
-      - npm install -g npm@latest
-      - npm install
+on:
+  push:
+    branches:
+      - testCase_feature  # only run on pushes to feature branch
+  workflow_dispatch:      # allows manual triggering if needed
 
-  pre_build:
-    commands:
-      - echo "Starting pre-build phase"
-      - npm run lint || true  # Run linting if configured, don't fail if not present
+jobs:
+  test:
+    runs-on: ubuntu-latest
 
-  build:
-    commands:
-      - echo "Running tests"
-      - npm test -- --coverage --watchAll=false
-      - npm run build
-
-  post_build:
-    commands:
-      - echo "Build completed"
-      - |
-        if [ -d "coverage" ]; then
-          echo "Processing coverage reports"
-          cp -r coverage/ ${CODEBUILD_SRC_DIR}/coverage/
-        fi
-
-reports:
-  coverage-report:
-    files:
-      - 'coverage/clover.xml'
-      - 'coverage/coverage-final.json'
-    file-format: CLOVERXML
-    base-directory: '${CODEBUILD_SRC_DIR}'
-
-artifacts:
-  files:
-    - '**/*'
-  base-directory: 'build'
-
-cache:
-  paths:
-    - 'node_modules/**/*'
-    - '.npm/**/*'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: |
+        npm ci
+        npm install @testing-library/react @testing-library/jest-dom --save-dev
+        
+    - name: Run Tests
+      run: npm test
+      env:
+        CI: true
+        NODE_ENV: test
