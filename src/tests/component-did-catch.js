@@ -80,3 +80,4 @@ describe('BombButton', () => {
     expect(errorRenderTime).toBeLessThan(normalRenderTime * 2);
   });
 });
+
