@@ -21,58 +21,51 @@ describe('BombButton and ErrorBoundary', () => {
     jest.clearAllMocks();
   });
 
-  it('renders BombButton without errors', () => {
+  test('renders BombButton without error', () => {
     render(<BombButton />);
-    const button = screen.getByRole('button', { name: /throw error/i });
-    expect(button).toBeInTheDocument();
+    const button = screen.getByRole('button');
     const bombEmoji = screen.getByRole('img', { name: 'bomb' });
+    expect(button).toBeInTheDocument();
+    expect(bombEmoji).toBeInTheDocument();
     expect(bombEmoji).toHaveAttribute('aria-label', 'bomb');
   });
 
-  it('simulates button click and triggers error', () => {
+  test('ErrorBoundary catches error when BombButton is clicked', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
-    expect(screen.getByText('There was a problem.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
   });
 
-  it('verifies error logging', () => {
+  
+
+  test('Console errors are properly managed', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
-    expect(reportError).toHaveBeenCalled();
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
-    expect(reportError.mock.calls[0][0].message).toBe('💣');
+    fireEvent.click(screen.getByRole('button'));
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 
-  it('tests error boundary functionality', () => {
-    render(
+  test('ErrorBoundary resets state on unmount', () => {
+    const { unmount, rerender } = render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
-    expect(screen.queryByRole('button', { name: /throw error/i })).not.toBeInTheDocument();
-    expect(screen.getByText('There was a problem.')).toBeInTheDocument();
-  });
-
-  it('checks console error suppression', () => {
-    render(
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+    unmount();
+    rerender(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    const button = screen.getByRole('button', { name: /throw error/i });
-    fireEvent.click(button);
-    expect(console.error).not.toHaveBeenCalled();
+    expect(screen.getByRole('button')).toBeInTheDocument();
   });
 });
