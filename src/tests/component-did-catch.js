@@ -1,4 +1,4 @@
-```javascript
+
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary, BombButton } from '../component-did-catch';
@@ -59,4 +59,3 @@ describe('ErrorBoundary and BombButton', () => {
     expect(screen.getByText('There was a problem')).toBeInTheDocument();
   });
 });
-```
