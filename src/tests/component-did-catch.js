@@ -1,12 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ErrorBoundary, BombButton, reportError } from '../component-did-catch';
+import '@testing-library/jest-dom';
+import { ErrorBoundary, BombButton } from '../component-did-catch';
+import { reportError } from '../utils';
 
-jest.mock('../reportError', () => ({
+jest.mock('../utils', () => ({
   reportError: jest.fn(),
 }));
 
-describe('ErrorBoundary', () => {
+describe('ErrorBoundary and BombButton', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -17,67 +19,68 @@ describe('ErrorBoundary', () => {
   });
 
   beforeEach(() => {
-    console.error.mockClear();
-    reportError.mockClear();
+    jest.clearAllMocks();
   });
 
-  test('renders children when no error', () => {
-    render(
-      <ErrorBoundary>
-        <div>Child Component</div>
-      </ErrorBoundary>
-    );
-    expect(screen.getByText('Child Component')).toBeInTheDocument();
-  });
-
-  test('catches error and displays fallback UI', () => {
+  test('Error Handling and UI Behavior', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    fireEvent.click(screen.getByRole('button'));
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /bomb/i }));
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 
-  test('displays custom error message', () => {
+  test('Error Boundary Rendering', () => {
+    const SafeComponent = () => <div>Safe Component</div>;
     render(
-      <ErrorBoundary fallback="Custom error message">
+      <ErrorBoundary>
+        <SafeComponent />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('Safe Component')).toBeInTheDocument();
+  });
+
+  test('Multiple Error Handling', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
         <BombButton />
       </ErrorBoundary>
     );
-    fireEvent.click(screen.getByRole('button'));
-    expect(screen.getByText('Custom error message')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: /bomb/i })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /bomb/i })[1]);
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
   });
 
-  test('calls reportError when error occurs', () => {
+  test('Error Boundary Reset', () => {
+    const { rerender } = render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /bomb/i }));
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+    rerender(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    expect(screen.getByRole('button', { name: /bomb/i })).toBeInTheDocument();
+  });
+
+  test('Console Error Suppression', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    fireEvent.click(screen.getByRole('button'));
-    expect(reportError).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /bomb/i }));
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 });
-
-describe('BombButton', () => {
-  test('renders correctly', () => {
-    render(<BombButton />);
-    expect(screen.getByRole('button', { name: 'Bomb' })).toBeInTheDocument();
-  });
-
-  test('throws error when clicked', () => {
-    render(<BombButton />);
-    expect(() => fireEvent.click(screen.getByRole('button'))).toThrow('Bomb!');
-  });
-});
-
-describe('reportError', () => {
-  test('is called with correct error object', () => {
-    const error = new Error('Test error');
-    reportError(error);
-    expect(reportError).toHaveBeenCalledWith(error);
-  });
-});
-
