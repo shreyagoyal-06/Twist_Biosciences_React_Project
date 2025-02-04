@@ -80,3 +80,4 @@ describe('reportError', () => {
     expect(reportError).toHaveBeenCalledWith(error);
   });
 });
+
