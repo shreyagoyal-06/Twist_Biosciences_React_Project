@@ -1,13 +1,12 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import ComponentDidCatch from '../component-did-catch';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { ErrorBoundary, BombButton, reportError } from '../component-did-catch';
 
-jest.mock('../api/getAllProcedures', () => ({
-  getAllProcedures: jest.fn(),
+jest.mock('../reportError', () => ({
+  reportError: jest.fn(),
 }));
 
-describe('ComponentDidCatch', () => {
+describe('ErrorBoundary', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -18,78 +17,126 @@ describe('ComponentDidCatch', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    console.error.mockClear();
+    reportError.mockClear();
   });
 
-  test('renders form list view', async () => {
-    render(<ComponentDidCatch />);
-    expect(screen.getByRole('list')).toBeInTheDocument();
+  test('renders children when no error occurs', () => {
+    render(
+      <ErrorBoundary>
+        <div>Test Content</div>
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
-  test('adapts layout to different screen sizes', () => {
-    const { container } = render(<ComponentDidCatch />);
-    expect(container.firstChild).toHaveStyle('display: flex');
+  test('renders fallback UI when error is caught', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('There was an error:')).toBeInTheDocument();
   });
 
-  test('displays request form popup', () => {
-    render(<ComponentDidCatch />);
-    fireEvent.click(screen.getByText('REQUEST FORMS'));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  test('supports customizable error messages', () => {
+    render(
+      <ErrorBoundary fallback={<div>Custom Error Message</div>}>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('Custom Error Message')).toBeInTheDocument();
   });
 
-  test('verifies layout dimensions', () => {
-    const { container } = render(<ComponentDidCatch />);
-    expect(container.querySelector('.navbar')).toHaveStyle('height: 64px');
-    expect(container.querySelector('.sidebar')).toHaveStyle('width: 72px');
+  test('catches different types of errors', () => {
+    const ThrowError = ({ type }) => {
+      if (type === 'syntax') {
+        throw new SyntaxError('Syntax Error');
+      } else {
+        throw new Error('Runtime Error');
+      }
+    };
+
+    render(
+      <ErrorBoundary>
+        <ThrowError type="syntax" />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('There was an error:')).toBeInTheDocument();
+
+    render(
+      <ErrorBoundary>
+        <ThrowError type="runtime" />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('There was an error:')).toBeInTheDocument();
+  });
+});
+
+describe('BombButton', () => {
+  test('renders correctly', () => {
+    render(<BombButton />);
+    expect(screen.getByRole('button', { name: 'Bomb' })).toBeInTheDocument();
   });
 
-  test('manages core states correctly', async () => {
-    render(<ComponentDidCatch />);
-    await waitFor(() => {
-      expect(screen.getByRole('list')).not.toBeEmpty();
-    });
+  test('triggers an error when clicked', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb' }));
+    expect(screen.getByText('There was an error:')).toBeInTheDocument();
   });
 
-  test('displays loading indicator during form submission', async () => {
-    render(<ComponentDidCatch />);
-    fireEvent.click(screen.getByText('Submit'));
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  test('error is caught by ErrorBoundary', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb' }));
+    expect(screen.queryByRole('button', { name: 'Bomb' })).not.toBeInTheDocument();
+    expect(screen.getByText('There was an error:')).toBeInTheDocument();
+  });
+});
+
+describe('reportError', () => {
+  test('is called when an error occurs', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb' }));
+    expect(reportError).toHaveBeenCalled();
   });
 
-  test('handles API integration', async () => {
-    const mockGetAllProcedures = require('../api/getAllProcedures').getAllProcedures;
-    mockGetAllProcedures.mockResolvedValue([{ id: 1, name: 'Test Form' }]);
-    render(<ComponentDidCatch />);
-    await waitFor(() => {
-      expect(screen.getByText('Test Form')).toBeInTheDocument();
-    });
+  test('logs the correct error object', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb' }));
+    expect(reportError).toHaveBeenCalledWith(expect.any(Error));
   });
 
-  test('handles API errors', async () => {
-    const mockGetAllProcedures = require('../api/getAllProcedures').getAllProcedures;
-    mockGetAllProcedures.mockRejectedValue(new Error('API Error'));
-    render(<ComponentDidCatch />);
-    await waitFor(() => {
-      expect(screen.getByText('Error loading forms')).toBeInTheDocument();
-    });
-  });
-
-  test('disables background scroll when popup is active', () => {
-    render(<ComponentDidCatch />);
-    fireEvent.click(screen.getByText('REQUEST FORMS'));
-    expect(document.body).toHaveStyle('overflow: hidden');
-  });
-
-  test('restores background scroll when popup is closed', () => {
-    render(<ComponentDidCatch />);
-    fireEvent.click(screen.getByText('REQUEST FORMS'));
-    fireEvent.click(screen.getByLabelText('Close'));
-    expect(document.body).not.toHaveStyle('overflow: hidden');
-  });
-
-  test('verifies accessibility features', () => {
-    render(<ComponentDidCatch />);
-    expect(screen.getByRole('navigation')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'REQUEST FORMS' })).toHaveAttribute('aria-haspopup', 'dialog');
+  test('logs additional metadata', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Bomb' }));
+    expect(reportError).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        timestamp: expect.any(Number),
+        componentStack: expect.any(String),
+      })
+    );
   });
 });
