@@ -1,6 +1,4 @@
-Based on the provided instructions and requirements, I've created a Jest test file for the component-did-catch.js file. Here's the test file content:
 
-```javascript
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -65,6 +63,6 @@ describe('ErrorBoundary and BombButton', () => {
     expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
   });
 });
-```
+
 
 This test file has been created and is ready to be deployed. Let me know if you need any further assistance or if you'd like me to deploy this file to a specific location.
