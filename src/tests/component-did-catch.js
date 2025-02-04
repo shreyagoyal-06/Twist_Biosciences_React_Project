@@ -81,3 +81,4 @@ describe('ErrorBoundary', () => {
     expect(console.error).toHaveBeenCalledTimes(2);
   });
 });
+
