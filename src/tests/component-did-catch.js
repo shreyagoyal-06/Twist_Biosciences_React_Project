@@ -1,8 +1,13 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import BombButton from '../component-did-catch';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import ComponentDidCatch from '../component-did-catch';
 
-describe('BombButton', () => {
+jest.mock('../api/getAllProcedures', () => ({
+  getAllProcedures: jest.fn(),
+}));
+
+describe('ComponentDidCatch', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -13,70 +18,64 @@ describe('BombButton', () => {
   });
 
   beforeEach(() => {
-    console.error.mockClear();
+    jest.clearAllMocks();
   });
 
-  test('renders without errors', () => {
-    render(<BombButton />);
-    const button = screen.getByRole('button', { name: /detonate/i });
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveStyle('background-color: red');
+  test('renders form list view', async () => {
+    render(<ComponentDidCatch />);
+    expect(screen.getByRole('list')).toBeInTheDocument();
   });
 
-  test('simulates error and catches it', () => {
-    render(<BombButton shouldError={true} />);
-    expect(console.error).toHaveBeenCalled();
-    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+  test('adapts layout to different screen sizes', () => {
+    const { container } = render(<ComponentDidCatch />);
+    expect(container.firstChild).toHaveStyle('display: flex');
   });
 
-  test('displays error message', () => {
-    render(<BombButton shouldError={true} />);
-    expect(screen.getByText(/oops! something went wrong/i)).toBeInTheDocument();
+  test('displays request form popup', () => {
+    render(<ComponentDidCatch />);
+    fireEvent.click(screen.getByText('REQUEST FORMS'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  test('reports error to service', () => {
-    const mockErrorService = jest.fn();
-    render(<BombButton shouldError={true} errorService={mockErrorService} />);
-    expect(mockErrorService).toHaveBeenCalledWith(expect.any(Error));
+  test('verifies layout dimensions', () => {
+    const { container } = render(<ComponentDidCatch />);
+    expect(container.querySelector('header')).toHaveStyle('height: 64px');
+    expect(container.querySelector('nav')).toHaveStyle('width: 72px');
   });
 
-  test('updates UI on error', () => {
-    render(<BombButton shouldError={true} />);
-    expect(screen.getByRole('button', { name: /detonate/i })).toBeDisabled();
-    expect(screen.getByTestId('error-icon')).toBeInTheDocument();
+  test('fetches initial data on mount', async () => {
+    render(<ComponentDidCatch />);
+    await waitFor(() => expect(getAllProcedures).toHaveBeenCalled());
   });
 
-  test('recovers from error state', () => {
-    const { rerender } = render(<BombButton shouldError={true} />);
-    expect(screen.getByText(/oops! something went wrong/i)).toBeInTheDocument();
-    
-    rerender(<BombButton shouldError={false} />);
-    expect(screen.queryByText(/oops! something went wrong/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /detonate/i })).toBeEnabled();
+  test('displays loading indicator during form submission', async () => {
+    render(<ComponentDidCatch />);
+    fireEvent.click(screen.getByText('Submit'));
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  test('handles multiple errors', () => {
-    const { rerender } = render(<BombButton />);
-    
-    rerender(<BombButton shouldError={true} />);
-    expect(screen.getByText(/oops! something went wrong/i)).toBeInTheDocument();
-    
-    rerender(<BombButton shouldError={false} />);
-    expect(screen.queryByText(/oops! something went wrong/i)).not.toBeInTheDocument();
-    
-    rerender(<BombButton shouldError={true} />);
-    expect(screen.getByText(/oops! something went wrong/i)).toBeInTheDocument();
+  test('handles API error', async () => {
+    getAllProcedures.mockRejectedValueOnce(new Error('API Error'));
+    render(<ComponentDidCatch />);
+    await waitFor(() => expect(screen.getByText('Error: API Error')).toBeInTheDocument());
   });
 
-  test('measures performance impact of error handling', async () => {
-    const start = performance.now();
-    render(<BombButton />);
-    const normalRenderTime = performance.now() - start;
+  test('disables background scroll when popup is active', () => {
+    render(<ComponentDidCatch />);
+    fireEvent.click(screen.getByText('REQUEST FORMS'));
+    expect(document.body).toHaveStyle('overflow: hidden');
+  });
 
-    const errorStart = performance.now();
-    render(<BombButton shouldError={true} />);
-    const errorRenderTime = performance.now() - errorStart;
+  test('restores background scroll when popup is closed', () => {
+    render(<ComponentDidCatch />);
+    fireEvent.click(screen.getByText('REQUEST FORMS'));
+    fireEvent.click(screen.getByLabelText('Close'));
+    expect(document.body).not.toHaveStyle('overflow: hidden');
+  });
 
-    expect(errorRenderTime).toBeLessThan(normalRenderTime * 2);
+  test('checks accessibility features', () => {
+    render(<ComponentDidCatch />);
+    expect(screen.getByRole('navigation')).toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
   });
 });
