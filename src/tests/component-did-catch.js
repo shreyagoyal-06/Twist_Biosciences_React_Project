@@ -84,3 +84,4 @@ describe('ErrorBoundary and BombButton', () => {
     expect(console.error).toHaveBeenCalledTimes(2);
   });
 });
+
