@@ -63,6 +63,3 @@ describe('ErrorBoundary and BombButton', () => {
     expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
   });
 });
-
-
-This test file has been created and is ready to be deployed. Let me know if you need any further assistance or if you'd like me to deploy this file to a specific location.
