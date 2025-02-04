@@ -2,10 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ComponentDidCatch from '../component-did-catch';
+import { getAllProcedures } from '../api/procedures';
 
-jest.mock('../api/getAllProcedures', () => ({
-  getAllProcedures: jest.fn(),
-}));
+jest.mock('../api/procedures');
 
 describe('ComponentDidCatch', () => {
   const originalError = console.error;
@@ -21,14 +20,18 @@ describe('ComponentDidCatch', () => {
     jest.clearAllMocks();
   });
 
-  test('renders form list view', async () => {
+  test('renders form list correctly', async () => {
+    getAllProcedures.mockResolvedValue([{ id: 1, name: 'Form 1' }]);
     render(<ComponentDidCatch />);
-    expect(screen.getByRole('list')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Form 1')).toBeInTheDocument();
+    });
   });
 
   test('adapts layout to different screen sizes', () => {
-    const { container } = render(<ComponentDidCatch />);
-    expect(container.firstChild).toHaveStyle('display: flex');
+    render(<ComponentDidCatch />);
+    const mainContent = screen.getByRole('main');
+    expect(mainContent).toHaveStyle('flex: 1');
   });
 
   test('displays request form popup', () => {
@@ -38,14 +41,19 @@ describe('ComponentDidCatch', () => {
   });
 
   test('verifies layout dimensions', () => {
-    const { container } = render(<ComponentDidCatch />);
-    expect(container.querySelector('header')).toHaveStyle('height: 64px');
-    expect(container.querySelector('nav')).toHaveStyle('width: 72px');
+    render(<ComponentDidCatch />);
+    const header = screen.getByRole('banner');
+    const sidebar = screen.getByRole('complementary');
+    expect(header).toHaveStyle('height: 64px');
+    expect(sidebar).toHaveStyle('width: 72px');
   });
 
-  test('fetches initial data on mount', async () => {
+  test('handles API error', async () => {
+    getAllProcedures.mockRejectedValue(new Error('API Error'));
     render(<ComponentDidCatch />);
-    await waitFor(() => expect(getAllProcedures).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.getByText('Error: API Error')).toBeInTheDocument();
+    });
   });
 
   test('displays loading indicator during form submission', async () => {
@@ -54,10 +62,9 @@ describe('ComponentDidCatch', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  test('handles API error', async () => {
-    getAllProcedures.mockRejectedValueOnce(new Error('API Error'));
+  test('fetches data on component mount', async () => {
     render(<ComponentDidCatch />);
-    await waitFor(() => expect(screen.getByText('Error: API Error')).toBeInTheDocument());
+    expect(getAllProcedures).toHaveBeenCalledTimes(1);
   });
 
   test('disables background scroll when popup is active', () => {
@@ -76,6 +83,6 @@ describe('ComponentDidCatch', () => {
   test('checks accessibility features', () => {
     render(<ComponentDidCatch />);
     expect(screen.getByRole('navigation')).toBeInTheDocument();
-    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'REQUEST FORMS' })).toHaveAttribute('aria-haspopup', 'dialog');
   });
 });
