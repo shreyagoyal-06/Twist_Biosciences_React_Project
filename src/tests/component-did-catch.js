@@ -5,10 +5,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary, BombButton } from '../component-did-catch';
 
-// Mock the reportError function
-jest.mock('../utils/error-reporting', () => ({
-  reportError: jest.fn(),
-}));
+
 
 describe('ErrorBoundary', () => {
   // Store the original console.error
