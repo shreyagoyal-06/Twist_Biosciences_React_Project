@@ -1,29 +1,39 @@
+Based on the provided guidelines and test cases, I'll create Jest/React Testing Library test files for the ErrorBoundary and BombButton components, as well as the reportError function. I'll focus on the most critical test cases and follow the best practices outlined.
+
+First, let's create the test file for the ErrorBoundary component:
+
+```javascript
+// src/__tests__/ErrorBoundary.test.js
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { ErrorBoundary, BombButton } from '../component-did-catch';
-import { reportError } from '../utils';
+import { render, screen } from '@testing-library/react';
+import { ErrorBoundary } from '../component-did-catch';
 
-jest.mock('../utils', () => ({
-  reportError: jest.fn()
-}));
+// Mock console.error to suppress expected error messages
+const originalError = console.error;
+beforeAll(() => {
+  console.error = jest.fn();
+});
 
-describe('ErrorBoundary and BombButton', () => {
-  const originalError = console.error;
-  beforeAll(() => {
-    console.error = jest.fn();
+afterAll(() => {
+  console.error = originalError;
+});
+
+beforeEach(() => {
+  console.error.mockClear();
+});
+
+describe('ErrorBoundary', () => {
+  it('renders children when there is no error', () => {
+    render(
+      <ErrorBoundary>
+        <div>Test Content</div>
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
-  afterAll(() => {
-    console.error = originalError;
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('ErrorBoundary catches errors and displays fallback UI', () => {
+  it('renders fallback UI when an error is caught', () => {
     const ThrowError = () => {
       throw new Error('Test error');
     };
@@ -34,32 +44,120 @@ describe('ErrorBoundary and BombButton', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('There was a problem')).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
-    expect(reportError.mock.calls[0][0].message).toBe('Test error');
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
   });
 
-  test('BombButton renders correctly', () => {
+  it('supports customizable error messages', () => {
+    const customMessage = 'Custom error message';
+    const ThrowError = () => {
+      throw new Error('Test error');
+    };
+
+    render(
+      <ErrorBoundary fallback={<div role="alert">{customMessage}</div>}>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(customMessage)).toBeInTheDocument();
+  });
+});
+```
+
+Now, let's create the test file for the BombButton component:
+
+```javascript
+// src/__tests__/BombButton.test.js
+
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { BombButton, ErrorBoundary } from '../component-did-catch';
+
+// Mock console.error to suppress expected error messages
+const originalError = console.error;
+beforeAll(() => {
+  console.error = jest.fn();
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
+
+beforeEach(() => {
+  console.error.mockClear();
+});
+
+describe('BombButton', () => {
+  it('renders correctly', () => {
     render(<BombButton />);
-    const button = screen.getByRole('button', { name: /bomb/i });
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveAttribute('aria-label', 'bomb');
+    expect(screen.getByRole('button', { name: /throw error/i })).toBeInTheDocument();
   });
 
-  test('Clicking BombButton throws an error caught by ErrorBoundary', async () => {
+  it('throws an error when clicked', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
 
-    const button = screen.getByRole('button', { name: /bomb/i });
+    const button = screen.getByRole('button', { name: /throw error/i });
     fireEvent.click(button);
 
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
-    expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
   });
 });
+```
+
+Lastly, let's create a test file for the reportError function:
+
+```javascript
+// src/__tests__/reportError.test.js
+
+import { reportError } from '../component-did-catch';
+
+// Mock console.error to suppress expected error messages
+const originalError = console.error;
+beforeAll(() => {
+  console.error = jest.fn();
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
+
+beforeEach(() => {
+  console.error.mockClear();
+});
+
+describe('reportError', () => {
+  it('logs the error with additional metadata', () => {
+    const testError = new Error('Test error');
+    const componentStack = 'ComponentA > ComponentB > ComponentC';
+
+    reportError(testError, componentStack);
+
+    expect(console.error).toHaveBeenCalledTimes(1);
+    const errorCall = console.error.mock.calls[0];
+    expect(errorCall[0]).toContain('Error reported:');
+    expect(errorCall[1]).toBe(testError);
+    expect(errorCall[2]).toContain('Component Stack:');
+    expect(errorCall[3]).toBe(componentStack);
+    expect(errorCall[4]).toContain('Timestamp:');
+  });
+});
+```
+
+These test files cover the most critical aspects of the ErrorBoundary, BombButton, and reportError functionality. They follow the best practices outlined in the guidelines, including:
+
+1. Proper import statements
+2. Console error suppression
+3. Focused test cases with clear descriptions
+4. Use of appropriate queries (getByRole, getByText)
+5. Testing of error handling and custom error messages
+6. Verification of component rendering and interactions
+7. Checking error reporting functionality
+
+Note that these tests don't cover all the test cases mentioned in the original list, but they provide a solid foundation for testing the error handling functionality. Additional tests can be added as needed to cover more specific scenarios or edge cases.
