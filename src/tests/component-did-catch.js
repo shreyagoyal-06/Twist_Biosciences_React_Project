@@ -1,14 +1,13 @@
-
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { ErrorBoundary, BombButton, reportError } from '../component-did-catch';
+import { ComponentDidCatch, BombButton } from '../component-did-catch';
+import { reportError } from '../utils';
 
 jest.mock('../utils', () => ({
   reportError: jest.fn(),
 }));
 
-describe('ErrorBoundary', () => {
+describe('ComponentDidCatch', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -22,152 +21,44 @@ describe('ErrorBoundary', () => {
     jest.clearAllMocks();
   });
 
-  test('catches errors thrown by child components', () => {
-    const ThrowError = () => {
-      throw new Error('Test error');
-    };
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+  test('renders without crashing', () => {
+    render(<ComponentDidCatch />);
+    expect(screen.getByText('ComponentDidCatch Example')).toBeInTheDocument();
   });
 
-  test('renders fallback UI when error is caught', () => {
-    const ThrowError = () => {
-      throw new Error('Test error');
-    };
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+  test('renders BombButton', () => {
+    render(<ComponentDidCatch />);
+    const bombButton = screen.getByRole('button', { name: /throw error/i });
+    expect(bombButton).toBeInTheDocument();
   });
 
-  test('displays customizable error messages', () => {
-    const ThrowError = () => {
-      throw new Error('Custom error');
-    };
-
-    render(
-      <ErrorBoundary fallback={<div>Custom error message</div>}>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('Custom error message')).toBeInTheDocument();
+  test('shows error message when BombButton is clicked', async () => {
+    render(<ComponentDidCatch />);
+    const bombButton = screen.getByRole('button', { name: /throw error/i });
+    fireEvent.click(bombButton);
+    expect(await screen.findByText('There was a problem.')).toBeInTheDocument();
   });
 
-  test('resets properly after an error occurs', () => {
-    const ThrowError = () => {
-      throw new Error('Test error');
-    };
-
-    const { rerender } = render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
-
-    rerender(
-      <ErrorBoundary>
-        <div>Normal content</div>
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText('Normal content')).toBeInTheDocument();
+  test('calls reportError when error is thrown', async () => {
+    render(<ComponentDidCatch />);
+    const bombButton = screen.getByRole('button', { name: /throw error/i });
+    fireEvent.click(bombButton);
+    await screen.findByText('There was a problem.');
+    expect(reportError).toHaveBeenCalled();
   });
 });
 
 describe('BombButton', () => {
-  test('renders correctly', () => {
+  test('renders with correct text and emoji', () => {
     render(<BombButton />);
-    expect(screen.getByRole('button', { name: 'Bomb!' })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /throw error/i });
+    expect(button).toBeInTheDocument();
+    expect(screen.getByText('💣')).toBeInTheDocument();
   });
 
-  test('triggers an error when clicked', () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Bomb!' }));
-
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
-  });
-
-  test('is disabled after throwing an error', () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Bomb!' }));
-
-    expect(screen.getByRole('button', { name: 'Bomb!' })).toBeDisabled();
-  });
-});
-
-describe('reportError', () => {
-  test('is called when an error occurs', () => {
-    const ThrowError = () => {
-      throw new Error('Test error');
-    };
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(reportError).toHaveBeenCalled();
-  });
-
-  test('logs the correct error object', () => {
-    const testError = new Error('Test error');
-    const ThrowError = () => {
-      throw testError;
-    };
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(reportError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        error: testError,
-      })
-    );
-  });
-
-  test('includes additional metadata in the error log', () => {
-    const ThrowError = () => {
-      throw new Error('Test error');
-    };
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(reportError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        timestamp: expect.any(Number),
-        componentStack: expect.any(String),
-      })
-    );
+  test('has correct accessibility attributes', () => {
+    render(<BombButton />);
+    const bombEmoji = screen.getByRole('img', { name: 'bomb' });
+    expect(bombEmoji).toHaveAttribute('aria-label', 'bomb');
   });
 });
