@@ -90,3 +90,6 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('New content')).toBeInTheDocument();
   });
 });
+
+
+
