@@ -1,51 +1,69 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import { BombButton } from '../component-did-catch';
- 
-// Mock reportError function
+import { render, screen, fireEvent } from '@testing-library/react';
+import { ErrorBoundary, BombButton } from '../component-did-catch';
+import { reportError } from '../utils';
+
 jest.mock('../utils', () => ({
   reportError: jest.fn(),
 }));
- 
-describe('BombButton', () => {
+
+describe('ErrorBoundary', () => {
   const originalError = console.error;
- 
   beforeAll(() => {
     console.error = jest.fn();
   });
- 
+
   afterAll(() => {
     console.error = originalError;
   });
- 
+
   beforeEach(() => {
-    console.error.mockClear();
+    jest.clearAllMocks();
   });
- 
-  test('renders bomb button initially', () => {
-    render(<BombButton />);
-    const button = screen.getByRole('button', { name: /bomb/i });
-    expect(button).toBeInTheDocument();
+
+  test('renders children correctly when there are no errors', () => {
+    render(
+      <ErrorBoundary>
+        <div>Test Content</div>
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
- 
-  test('renders error message when bomb is clicked', async () => {
-    render(<BombButton />);
-    const button = screen.getByRole('button', { name: /bomb/i });
-    button.click();
- 
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
+
+  test('displays fallback UI when an error occurs', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /throw error/i }));
+    expect(screen.getByText('There was a problem.')).toBeInTheDocument();
   });
- 
-  test('calls reportError when an error occurs', async () => {
-    const { reportError } = require('../utils');
-    render(<BombButton />);
-    const button = screen.getByRole('button', { name: /bomb/i });
-    button.click();
- 
-    await screen.findByText('There was a problem');
+
+  test('calls reportError when an error is caught', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /throw error/i }));
     expect(reportError).toHaveBeenCalled();
   });
-});
 
+  test('resets error state when receiving new children', () => {
+    const { rerender } = render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /throw error/i }));
+    expect(screen.getByText('There was a problem.')).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary>
+        <div>New Content</div>
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('New Content')).toBeInTheDocument();
+  });
+});
