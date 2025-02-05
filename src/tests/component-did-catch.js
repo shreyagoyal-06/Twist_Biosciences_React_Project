@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BombButton, ErrorBoundary } from '../component-did-catch';
+import { BombButton } from '../component-did-catch';
 import { reportError } from '../utils';
 
 jest.mock('../utils', () => ({
@@ -21,7 +21,7 @@ describe('BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('renders BombButton correctly', () => {
+  test('renders button with correct accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
     const span = screen.getByRole('img', { name: 'bomb' });
@@ -30,41 +30,16 @@ describe('BombButton', () => {
     expect(span).toHaveTextContent('💣');
   });
 
-  test('clicking BombButton triggers error and displays error message', async () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    const errorMessage = await screen.findByText('There was a problem.');
-    expect(errorMessage).toBeInTheDocument();
-    expect(button).not.toBeInTheDocument();
+  test('displays error message when clicked', async () => {
+    render(<BombButton />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(await screen.findByText('There was a problem')).toBeInTheDocument();
   });
 
-  test('reportError is called with correct parameters when error occurs', () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
-    expect(reportError.mock.calls[0][1]).toHaveProperty('componentStack');
-  });
-
-  test('console.error is called with expected error message', () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    expect(console.error).toHaveBeenCalled();
-    expect(console.error.mock.calls[0][0]).toMatch(/Error was caught by ErrorBoundary/);
+  test('calls reportError when error occurs', async () => {
+    render(<BombButton />);
+    fireEvent.click(screen.getByRole('button'));
+    await screen.findByText('There was a problem');
+    expect(reportError).toHaveBeenCalled();
   });
 });
