@@ -1,13 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BombButton } from '../component-did-catch';
+import { ErrorBoundary, BombButton } from '../component-did-catch';
 import { reportError } from '../utils';
 
-jest.mock('../utils', () => ({
-  reportError: jest.fn(),
-}));
+jest.mock('../utils');
 
-describe('BombButton', () => {
+describe('ErrorBoundary and BombButton', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -21,7 +19,7 @@ describe('BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('renders button with correct accessibility attributes', () => {
+  test('BombButton renders correctly with accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
     const span = screen.getByRole('img', { name: 'bomb' });
@@ -30,16 +28,26 @@ describe('BombButton', () => {
     expect(span).toHaveTextContent('💣');
   });
 
-  test('displays error message when clicked', async () => {
-    render(<BombButton />);
+  test('Clicking BombButton triggers error and ErrorBoundary catches it', async () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
     fireEvent.click(screen.getByRole('button'));
     expect(await screen.findByText('There was a problem')).toBeInTheDocument();
   });
 
-  test('calls reportError when error occurs', async () => {
-    render(<BombButton />);
+  test('reportError is called with correct parameters when error occurs', async () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
     fireEvent.click(screen.getByRole('button'));
     await screen.findByText('There was a problem');
-    expect(reportError).toHaveBeenCalled();
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
+    expect(reportError.mock.calls[0][1]).toHaveProperty('componentStack');
   });
 });
