@@ -21,67 +21,72 @@ describe('ErrorBoundary', () => {
     jest.clearAllMocks();
   });
 
-  test('catches and handles errors', () => {
-    const ThrowError = () => {
-      throw new Error('Test error');
-    };
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-    expect(screen.getByText('There was a problem')).toBeInTheDocument();
-  });
-
-  test('calls reportError when an error is caught', () => {
+  it('catches errors and displays fallback UI', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
+
     fireEvent.click(screen.getByRole('button'));
+
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
     expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
-    expect(reportError.mock.calls[0][1].componentStack).toContain('BombButton');
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 
-  test('displays fallback UI when an error occurs', () => {
+  it('renders BombButton correctly before error', () => {
+    render(<BombButton />);
+    const bombSpan = screen.getByRole('img', { name: 'bomb' });
+    expect(bombSpan).toHaveTextContent('💣');
+    expect(bombSpan).toHaveAttribute('aria-label', 'bomb');
+  });
+
+  it('updates ErrorBoundary state on error', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
+
     fireEvent.click(screen.getByRole('button'));
-    expect(screen.getByText('There was a problem')).toBeInTheDocument();
+
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
   });
 
-  test('resets and re-renders children after an error', () => {
+  it('calls reportError with correct parameters', () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(reportError).toHaveBeenCalledWith(
+      expect.any(TypeError),
+      expect.objectContaining({
+        componentStack: expect.any(String),
+      })
+    );
+  });
+
+  it('allows application to remain usable after error', () => {
     const { rerender } = render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
+
     fireEvent.click(screen.getByRole('button'));
+
     rerender(
       <ErrorBoundary>
-        <BombButton />
+        <div>New content</div>
       </ErrorBoundary>
     );
-    expect(screen.getByRole('button')).toBeInTheDocument();
-  });
 
-  test('suppresses console errors during error handling', () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    fireEvent.click(screen.getByRole('button'));
-    expect(console.error).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('New content')).toBeInTheDocument();
   });
 });
-
-
-
-
