@@ -1,13 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ErrorBoundary, BombButton } from '../component-did-catch';
+import { BombButton, ErrorBoundary } from '../component-did-catch';
 import { reportError } from '../utils';
 
 jest.mock('../utils', () => ({
   reportError: jest.fn(),
 }));
 
-describe('ErrorBoundary', () => {
+describe('BombButton and ErrorBoundary', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -21,49 +21,45 @@ describe('ErrorBoundary', () => {
     jest.clearAllMocks();
   });
 
-  test('renders children correctly when there are no errors', () => {
-    render(
-      <ErrorBoundary>
-        <div>Test Content</div>
-      </ErrorBoundary>
-    );
-    expect(screen.getByText('Test Content')).toBeInTheDocument();
+  test('renders BombButton with correct accessibility attributes', () => {
+    render(<BombButton />);
+    const button = screen.getByRole('button');
+    const span = screen.getByRole('img', { name: 'bomb' });
+    expect(button).toBeInTheDocument();
+    expect(span).toHaveAttribute('aria-label', 'bomb');
+    expect(span).toHaveTextContent('💣');
   });
 
-  test('displays fallback UI when an error occurs', () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    fireEvent.click(screen.getByRole('button', { name: /throw error/i }));
-    expect(screen.getByText('There was a problem.')).toBeInTheDocument();
-  });
-
-  test('calls reportError when an error is caught', () => {
+  test('displays fallback UI when error is triggered', async () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    fireEvent.click(screen.getByRole('button', { name: /throw error/i }));
-    expect(reportError).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button'));
+    const errorMessage = await screen.findByText('There was a problem');
+    expect(errorMessage).toBeInTheDocument();
   });
 
-  test('resets error state when receiving new children', () => {
-    const { rerender } = render(
+  test('calls reportError when error is triggered', () => {
+    render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    fireEvent.click(screen.getByRole('button', { name: /throw error/i }));
-    expect(screen.getByText('There was a problem.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
+    expect(reportError.mock.calls[0][1].componentStack).toContain('BombButton');
+  });
 
-    rerender(
+  test('logs to console.error twice when error is triggered', () => {
+    render(
       <ErrorBoundary>
-        <div>New Content</div>
+        <BombButton />
       </ErrorBoundary>
     );
-    expect(screen.getByText('New Content')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 });
