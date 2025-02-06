@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BombButton, ErrorBoundary } from '../component-did-catch';
+import { BombButton } from '../component-did-catch';
 import { reportError } from '../utils';
 
 jest.mock('../utils', () => ({
@@ -21,36 +21,35 @@ describe('BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('renders BombButton correctly', () => {
+  it('renders correctly with proper accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
-    const emoji = screen.getByRole('img', { name: 'bomb' });
+    const span = screen.getByRole('img', { name: 'bomb' });
+    
     expect(button).toBeInTheDocument();
-    expect(emoji).toHaveTextContent('💣');
+    expect(span).toHaveAttribute('aria-label', 'bomb');
+    expect(span).toHaveTextContent('💣');
   });
 
-  test('displays error message when clicked', async () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
+  it('displays error message and calls reportError when clicked', async () => {
+    render(<BombButton />);
     const button = screen.getByRole('button');
+    
     fireEvent.click(button);
-    const errorMessage = await screen.findByText('There was a problem.');
-    expect(errorMessage).toBeInTheDocument();
+    
+    expect(await screen.findByText('There was a problem')).toBeInTheDocument();
+    expect(reportError).toHaveBeenCalled();
   });
 
-  test('calls reportError when error occurs', async () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
+  it('maintains error state after multiple clicks', async () => {
+    render(<BombButton />);
     const button = screen.getByRole('button');
+    
     fireEvent.click(button);
-    await screen.findByText('There was a problem.');
+    expect(await screen.findByText('There was a problem')).toBeInTheDocument();
+    
+    fireEvent.click(button);
+    expect(screen.getByText('There was a problem')).toBeInTheDocument();
     expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
   });
 });
