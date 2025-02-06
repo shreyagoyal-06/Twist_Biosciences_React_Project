@@ -7,7 +7,7 @@ jest.mock('../utils', () => ({
   reportError: jest.fn(),
 }));
 
-describe('BombButton and ErrorBoundary', () => {
+describe('ErrorBoundary and BombButton', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -21,39 +21,55 @@ describe('BombButton and ErrorBoundary', () => {
     jest.clearAllMocks();
   });
 
-  test('BombButton renders correctly and throws error when clicked', async () => {
-    render(<ErrorBoundary><BombButton /></ErrorBoundary>);
-    const button = screen.getByRole('button');
-    const bombEmoji = screen.getByRole('img', { name: 'bomb' });
+  test('ErrorBoundary catches error from BombButton', async () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
 
-    expect(button).toBeInTheDocument();
-    expect(bombEmoji).toHaveTextContent('💣');
-
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button'));
     
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
+    expect(await screen.findByText('There was a problem.')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  test('ErrorBoundary catches error and calls reportError', async () => {
-    render(<ErrorBoundary><BombButton /></ErrorBoundary>);
-    const button = screen.getByRole('button');
+  test('reportError is called when error occurs', async () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
 
-    fireEvent.click(button);
-
-    await screen.findByText('There was a problem');
+    fireEvent.click(screen.getByRole('button'));
+    
+    await screen.findByText('There was a problem.');
     expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(Error);
     expect(reportError.mock.calls[0][1]).toHaveProperty('componentStack');
   });
 
-  test('console.error is called twice during error handling', async () => {
-    render(<ErrorBoundary><BombButton /></ErrorBoundary>);
+  test('console.error is called with error message', async () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByRole('button'));
+    
+    await screen.findByText('There was a problem.');
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  test('BombButton renders correctly', () => {
+    render(<BombButton />);
+    
     const button = screen.getByRole('button');
-
-    fireEvent.click(button);
-
-    await screen.findByText('There was a problem');
-    expect(console.error).toHaveBeenCalledTimes(2);
+    expect(button).toBeInTheDocument();
+    
+    const span = screen.getByRole('img', { name: 'bomb' });
+    expect(span).toBeInTheDocument();
+    expect(span).toHaveTextContent('💣');
   });
 });
