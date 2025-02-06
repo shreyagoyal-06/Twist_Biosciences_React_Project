@@ -1,9 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ErrorBoundary, BombButton } from '../component-did-catch';
+import { BombButton, ErrorBoundary } from '../component-did-catch';
 import { reportError } from '../utils';
 
-jest.mock('../utils');
+jest.mock('../utils', () => ({
+  reportError: jest.fn(),
+}));
 
 describe('ErrorBoundary and BombButton', () => {
   const originalError = console.error;
@@ -19,7 +21,7 @@ describe('ErrorBoundary and BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('BombButton renders correctly with accessibility attributes', () => {
+  test('BombButton renders correctly', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
     const span = screen.getByRole('img', { name: 'bomb' });
@@ -28,26 +30,34 @@ describe('ErrorBoundary and BombButton', () => {
     expect(span).toHaveTextContent('💣');
   });
 
-  test('Clicking BombButton triggers error and ErrorBoundary catches it', async () => {
+  test('ErrorBoundary catches error and displays fallback UI', async () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
+    
     fireEvent.click(screen.getByRole('button'));
+    
     expect(await screen.findByText('There was a problem')).toBeInTheDocument();
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 
-  test('reportError is called with correct parameters when error occurs', async () => {
+  test('reportError is called with correct arguments', () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
+    
     fireEvent.click(screen.getByRole('button'));
-    await screen.findByText('There was a problem');
-    expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
-    expect(reportError.mock.calls[0][1]).toHaveProperty('componentStack');
+    
+    expect(reportError).toHaveBeenCalledWith(
+      expect.any(TypeError),
+      expect.objectContaining({
+        componentStack: expect.stringContaining('BombButton')
+      })
+    );
   });
 });
