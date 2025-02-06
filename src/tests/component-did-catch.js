@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BombButton, ErrorBoundary } from '../component-did-catch';
+import { ErrorBoundary, BombButton } from '../component-did-catch';
 import { reportError } from '../utils';
 
 jest.mock('../utils', () => ({
@@ -21,16 +21,17 @@ describe('BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('renders bomb button with correct accessibility attributes', () => {
+  test('renders with correct accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
     const span = screen.getByRole('img', { name: 'bomb' });
+    
     expect(button).toBeInTheDocument();
     expect(span).toHaveAttribute('aria-label', 'bomb');
     expect(span).toHaveTextContent('💣');
   });
 
-  test('displays error message and calls reportError when clicked', async () => {
+  test('displays error message when clicked', async () => {
     render(
       <ErrorBoundary>
         <BombButton />
@@ -45,15 +46,15 @@ describe('BombButton', () => {
     expect(reportError.mock.calls[0][1]).toHaveProperty('componentStack');
   });
 
-  test('renders custom error message when provided', async () => {
+  test('console.error is called twice during error handling', () => {
     render(
-      <ErrorBoundary fallback="Custom error message">
+      <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
     
     fireEvent.click(screen.getByRole('button'));
     
-    expect(await screen.findByText('Custom error message')).toBeInTheDocument();
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 });
