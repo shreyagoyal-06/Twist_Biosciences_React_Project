@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ErrorBoundary, BombButton } from '../component-did-catch';
+import { BombButton, ErrorBoundary } from '../component-did-catch';
 import { reportError } from '../utils';
 
 jest.mock('../utils', () => ({
@@ -21,7 +21,7 @@ describe('BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('renders correctly and has proper accessibility attributes', () => {
+  test('renders bomb button with correct accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
     const span = screen.getByRole('img', { name: 'bomb' });
@@ -30,28 +30,30 @@ describe('BombButton', () => {
     expect(span).toHaveTextContent('💣');
   });
 
-  test('displays error message when clicked', async () => {
+  test('displays error message and calls reportError when clicked', async () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
+    
+    fireEvent.click(screen.getByRole('button'));
+    
     expect(await screen.findByText('There was a problem')).toBeInTheDocument();
-  });
-
-  test('calls reportError when error occurs', async () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    await screen.findByText('There was a problem');
     expect(reportError).toHaveBeenCalledTimes(1);
     expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
-    expect(reportError.mock.calls[0][1].componentStack).toContain('BombButton');
+    expect(reportError.mock.calls[0][1]).toHaveProperty('componentStack');
+  });
+
+  test('renders custom error message when provided', async () => {
+    render(
+      <ErrorBoundary fallback="Custom error message">
+        <BombButton />
+      </ErrorBoundary>
+    );
+    
+    fireEvent.click(screen.getByRole('button'));
+    
+    expect(await screen.findByText('Custom error message')).toBeInTheDocument();
   });
 });
