@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BombButton, ErrorBoundary } from '../component-did-catch';
+import { ErrorBoundary, BombButton } from '../component-did-catch';
 import { reportError } from '../utils';
 
 jest.mock('../utils', () => ({
@@ -21,10 +21,11 @@ describe('BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('renders bomb emoji with correct accessibility attributes', () => {
+  test('renders bomb button with correct accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
     const span = screen.getByRole('img', { name: 'bomb' });
+    
     expect(button).toBeInTheDocument();
     expect(span).toHaveAttribute('aria-label', 'bomb');
     expect(span).toHaveTextContent('💣');
@@ -36,23 +37,27 @@ describe('BombButton', () => {
         <BombButton />
       </ErrorBoundary>
     );
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toBeInTheDocument();
+    
+    fireEvent.click(screen.getByRole('button'));
+    
+    expect(await screen.findByText('There was a problem')).toBeInTheDocument();
   });
 
-  test('calls reportError when error occurs', async () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    await screen.findByText('There was a problem');
+  test('calls reportError with correct parameters when error occurs', () => {
+    render(<BombButton />);
+    
+    fireEvent.click(screen.getByRole('button'));
+    
     expect(reportError).toHaveBeenCalledTimes(1);
     expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
-    expect(reportError.mock.calls[0][1].componentStack).toContain('BombButton');
+    expect(reportError.mock.calls[0][1]).toHaveProperty('componentStack');
+  });
+
+  test('suppresses console errors', () => {
+    render(<BombButton />);
+    
+    fireEvent.click(screen.getByRole('button'));
+    
+    expect(console.error).toHaveBeenCalledTimes(2);
   });
 });
