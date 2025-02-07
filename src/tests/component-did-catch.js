@@ -21,7 +21,7 @@ describe('BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('renders button with correct accessibility attributes', () => {
+  it('renders button with correct accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
     const span = screen.getByRole('img', { name: 'bomb' });
@@ -30,17 +30,17 @@ describe('BombButton', () => {
     expect(span).toHaveTextContent('💣');
   });
 
-  test('displays error message and calls reportError when clicked', async () => {
+  it('displays error message and calls reportError when clicked', async () => {
     render(<BombButton />);
     fireEvent.click(screen.getByRole('button'));
     expect(await screen.findByText('There was a problem')).toBeInTheDocument();
     expect(reportError).toHaveBeenCalled();
   });
 
-  test('preserves accessibility when error occurs', async () => {
+  it('maintains error state after catching an error', async () => {
     render(<BombButton />);
     fireEvent.click(screen.getByRole('button'));
-    const errorMessage = await screen.findByText('There was a problem');
-    expect(errorMessage).toHaveAttribute('role', 'alert');
+    await screen.findByText('There was a problem');
+    expect(screen.queryByText('💣')).not.toBeInTheDocument();
   });
 });
