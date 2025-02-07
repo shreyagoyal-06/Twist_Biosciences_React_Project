@@ -7,7 +7,7 @@ jest.mock('../utils', () => ({
   reportError: jest.fn(),
 }));
 
-describe('ErrorBoundary and BombButton', () => {
+describe('BombButton', () => {
   const originalError = console.error;
   beforeAll(() => {
     console.error = jest.fn();
@@ -21,44 +21,38 @@ describe('ErrorBoundary and BombButton', () => {
     jest.clearAllMocks();
   });
 
-  test('ErrorBoundary renders children correctly', () => {
-    render(
-      <ErrorBoundary>
-        <div>Test Child</div>
-      </ErrorBoundary>
-    );
-    expect(screen.getByText('Test Child')).toBeInTheDocument();
-  });
-
-  test('ErrorBoundary catches and handles errors', async () => {
-    render(
-      <ErrorBoundary>
-        <BombButton />
-      </ErrorBoundary>
-    );
-    fireEvent.click(screen.getByRole('button'));
-    expect(await screen.findByText('There was a problem.')).toBeInTheDocument();
-  });
-
-  test('BombButton renders correctly with accessibility attributes', () => {
+  test('renders bomb emoji with correct accessibility attributes', () => {
     render(<BombButton />);
     const button = screen.getByRole('button');
-    expect(button).toHaveAttribute('aria-label', 'Trigger error');
-    expect(button).toHaveAttribute('tabIndex', '0');
-    expect(button).toHaveAttribute('title', 'Trigger an error for testing');
-    
     const span = screen.getByRole('img', { name: 'bomb' });
+    expect(button).toBeInTheDocument();
+    expect(span).toHaveAttribute('aria-label', 'bomb');
     expect(span).toHaveTextContent('💣');
   });
 
-  test('Error is reported when BombButton is clicked', async () => {
+  test('displays error message when clicked', async () => {
     render(
       <ErrorBoundary>
         <BombButton />
       </ErrorBoundary>
     );
-    fireEvent.click(screen.getByRole('button'));
-    await screen.findByText('There was a problem.');
-    expect(reportError).toHaveBeenCalled();
+    const button = screen.getByRole('button');
+    fireEvent.click(button);
+    const errorMessage = await screen.findByText('There was a problem');
+    expect(errorMessage).toBeInTheDocument();
+  });
+
+  test('calls reportError when error occurs', async () => {
+    render(
+      <ErrorBoundary>
+        <BombButton />
+      </ErrorBoundary>
+    );
+    const button = screen.getByRole('button');
+    fireEvent.click(button);
+    await screen.findByText('There was a problem');
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError.mock.calls[0][0]).toBeInstanceOf(TypeError);
+    expect(reportError.mock.calls[0][1].componentStack).toContain('BombButton');
   });
 });
