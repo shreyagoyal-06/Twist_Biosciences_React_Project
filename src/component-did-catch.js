@@ -38,6 +38,6 @@ function BombButton() {
   )
 }
 
-export {BombButton}
+export {ErrorBoundary, BombButton}
 
 
